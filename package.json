@@ -1,0 +1,30 @@
+{
+  "name": "setup-vmb",
+  "version": "1.0.0",
+  "description": "Set up GitHub Actions workflow with a specific version of vmb.",
+  "license": "MIT",
+  "author": "ScriptExec",
+  "config": {
+    "repositoryUrl": "https://github.com/ScriptExec/vmb",
+    "defaultReleaseVersion": "latest"
+  },
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc --noEmit && ncc build src/index.ts --minify -o dist",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.38.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@actions/core": "^3.0.1",
+    "@actions/github": "^9.1.1",
+    "@actions/tool-cache": "^4.0.0"
+  }
+}

@@ -1,0 +1,1 @@
+export const repository_url = "https://github.com/ScriptExec/vmb";

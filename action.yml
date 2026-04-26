@@ -1,0 +1,20 @@
+name: "ScriptExec/setup-vmb"
+description: "Set up GitHub Actions workflow with a specific version of vmb."
+author: "ScriptExec"
+
+inputs:
+  version:
+    description: "The version of vmb to install [default: latest]"
+    default: "latest"
+  github-token:
+    description: "Used when downloading vmb from GitHub releases"
+    required: false
+    default: ${{github.token}}
+    
+runs:
+  using: "node24"
+  main: "dist/index.js"
+
+branding:
+  icon: "package"
+  color: "black"
