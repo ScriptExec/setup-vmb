@@ -1,5 +1,6 @@
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import * as core from "@actions/core";
 import * as tc from "@actions/tool-cache";
@@ -16,28 +17,65 @@ async function setup(): Promise<void> {
 	const resolved_version = await resolve_version(action_inputs, repository_url);
 	const download_url = get_download_url(resolved_version, repository_url, platform_name);
 	const checksum_url = get_checksum_url(resolved_version, repository_url);
+	core.info(`Resolving vmb ${resolved_version} for ${platform_name}/${process.arch}`);
+	core.info(`Downloading archive: ${download_url}`);
 	const archive_path = await tc.downloadTool(download_url);
+	core.info(`Downloading checksum: ${checksum_url}`);
 	const checksum_path = await tc.downloadTool(checksum_url);
 	const archive_filename = get_asset_filename(download_url);
 	verify_archive_checksum(archive_path, archive_filename, checksum_path);
+	core.info(`Checksum verified for ${archive_filename}`);
 	let is_windows = platform_name === "windows";
 
-	let cli_path: string;
-	if (!is_windows) {
-		const extracted_path = await tc.extractTar(archive_path);
-		const entries = fs.readdirSync(extracted_path);
-		if (entries.length === 0) {
-			throw new Error("Extracted archive is empty");
+	const extracted_path = !is_windows ? await tc.extractTar(archive_path, undefined, "xJ") : await tc.extractZip(archive_path);
+	core.info(`Extracted vmb archive to ${extracted_path}`);
+
+	const vmb_files = find_vmb_files(extracted_path);
+	core.info(`Found ${vmb_files.length} vmb executable file(s): ${vmb_files.map((file) => path.basename(file)).join(", ")}`);
+	const cli_path = stage_vmb_files(vmb_files);
+	core.info(`Prepared CLI directory ${cli_path}`);
+
+	const cached_cli_path = await tc.cacheDir(cli_path, "vmb", resolved_version, process.arch);
+	core.info(`Cached CLI directory ${cached_cli_path}`);
+	core.addPath(cached_cli_path);
+	core.info(`Added ${cached_cli_path} to PATH`);
+}
+
+function find_vmb_files(root: string): string[] {
+	const matches: string[] = [];
+	const vmb_name_pattern = /^vmb(\..+)?$/i;
+	const entries = fs.readdirSync(root, { withFileTypes: true });
+
+	for (const entry of entries) {
+		const full = path.join(root, entry.name);
+
+		if (entry.isFile() && vmb_name_pattern.test(entry.name)) {
+			matches.push(full);
 		}
-    	const dir = entries[0];
-		if (!dir) {
-			throw new Error("Failed to determine extracted directory");
+
+		if (entry.isDirectory()) {
+			matches.push(...find_vmb_files(full));
 		}
-		cli_path = path.join(extracted_path, dir);
-	} else {
-		cli_path = await tc.extractZip(archive_path);
 	}
-	core.addPath(cli_path);
+
+	if (matches.length === 0) {
+		throw new Error(`No vmb executable files found in extracted archive at ${root}`);
+	}
+
+	return matches;
+}
+
+function stage_vmb_files(files: string[]): string {
+	const staging_dir = fs.mkdtempSync(path.join(process.env.RUNNER_TEMP ?? os.tmpdir(), "setup-vmb-"));
+
+	for (const source of files) {
+		const destination = path.join(staging_dir, path.basename(source));
+		fs.copyFileSync(source, destination);
+		const mode = fs.statSync(source).mode;
+		fs.chmodSync(destination, mode);
+	}
+
+	return staging_dir;
 }
 
 function get_action_inputs(): ActionInputs {
@@ -96,6 +134,6 @@ export function verify_archive_checksum(archive_path: string, archive_filename: 
 	}
 }
 
-if (require.main === module) {
+if (process.env.GITHUB_ACTIONS === "true" || require.main === module) {
 	void setup().catch((error) => core.setFailed((error as Error).message));
 }

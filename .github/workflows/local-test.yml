@@ -1,0 +1,20 @@
+name: Test vmb
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up vmb
+        uses: ./
+        with:
+          version: latest
+          github-token: ${{ github.token }}
+
+      - name: Verify vmb
+        run: vmb --version
