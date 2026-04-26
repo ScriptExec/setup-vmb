@@ -18,8 +18,7 @@ GitHub Action for setting up [vmb](https://github.com/ScriptExec/vmb) with a spe
 #### Example Workflow
 
 ```yaml
-name: CI
-
+name: Test vmb
 on:
   push:
     branches:
