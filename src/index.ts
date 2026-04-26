@@ -5,11 +5,9 @@ import * as core from "@actions/core";
 import * as tc from "@actions/tool-cache";
 import * as platform from "./utils/platform";
 import { repository_url } from "./config";
+import { resolve_version, type ActionInputs } from "./github";
 
-type ActionInputs = {
-	version: string;
-	github_token: string;
-};
+export { resolve_version, get_latest_release_tag } from "./github";
 
 async function setup(): Promise<void> {
 	const action_inputs = get_action_inputs();
@@ -32,46 +30,7 @@ function get_action_inputs(): ActionInputs {
 	};
 }
 
-async function resolve_version(action_inputs: ActionInputs, repository_url: string): Promise<string> {
-	if (action_inputs.version.length > 0 && action_inputs.version !== "latest") {
-		return action_inputs.version;
-	}
-
-	const repository_path = new URL(repository_url).pathname.replace(/^\/+|\/+$/g, "");
-	const [owner, repo] = repository_path.split("/");
-	if (!owner || !repo) {
-		throw new Error(`Invalid repository URL: ${repository_url}`);
-	}
-
-	return await get_latest_release_tag(owner, repo, action_inputs.github_token);
-}
-
-async function get_latest_release_tag(owner: string, repo: string, github_token: string): Promise<string> {
-	const headers: Record<string, string> = {
-		accept: "application/vnd.github+json",
-	};
-
-	if (github_token.length > 0) {
-		headers.authorization = `Bearer ${github_token}`;
-	}
-
-	const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`, {
-		headers,
-	});
-
-	if (!response.ok) {
-		throw new Error(`Failed to resolve latest release for ${owner}/${repo}: ${response.status} ${response.statusText}`);
-	}
-
-	const release = (await response.json()) as { tag_name?: string };
-	if (!release.tag_name) {
-		throw new Error(`Latest release for ${owner}/${repo} did not include a tag name`);
-	}
-
-	return release.tag_name;
-}
-
-function get_download_url(version: string, repository_url: string, platform_name: string): string {
+export function get_download_url(version: string, repository_url: string, platform_name: string): string {
 	const release_version = version;
 
 	if (platform_name === "windows") {
@@ -85,16 +44,16 @@ function get_download_url(version: string, repository_url: string, platform_name
 	throw new Error(`Unsupported platform: ${platform_name}`);
 }
 
-function get_checksum_url(version: string, repository_url: string): string {
+export function get_checksum_url(version: string, repository_url: string): string {
 	return `${repository_url}/releases/download/${version}/sha256.sum`;
 }
 
-function get_asset_filename(download_url: string): string {
+export function get_asset_filename(download_url: string): string {
 	const asset_path = new URL(download_url).pathname;
 	return path.basename(asset_path);
 }
 
-function verify_archive_checksum(archive_path: string, archive_filename: string, checksum_path: string): void {
+export function verify_archive_checksum(archive_path: string, archive_filename: string, checksum_path: string): void {
 	const checksum_content = fs.readFileSync(checksum_path, "utf8");
 	const lines = checksum_content.split(/\r?\n/);
 
@@ -120,4 +79,6 @@ function verify_archive_checksum(archive_path: string, archive_filename: string,
 	}
 }
 
-setup().catch((error) => core.setFailed((error as Error).message));
+if (require.main === module) {
+	void setup().catch((error) => core.setFailed((error as Error).message));
+}

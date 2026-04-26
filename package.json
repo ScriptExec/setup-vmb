@@ -15,11 +15,14 @@
   },
   "scripts": {
     "build": "tsc --noEmit && ncc build src/index.ts --minify -o dist",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest --runInBand"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@vercel/ncc": "^0.38.4",
-    "@types/node": "^22.15.21",
+    "@types/node": "^25.6.0",
+    "jest": "^30.3.0",
+    "ts-jest": "^29.2.5",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.3"
   },
