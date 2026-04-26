@@ -57,12 +57,6 @@ describe("get_download_url", () => {
 			"https://github.com/ScriptExec/vmb/releases/download/v1.0.0/vmb-x86_64-unknown-linux-gnu.tar.xz",
 		);
 	});
-
-	it("rejects unsupported platforms", () => {
-		expect(() => get_download_url("v1.0.0", "https://github.com/ScriptExec/vmb", "freebsd")).toThrow(
-			"Unsupported platform: freebsd",
-		);
-	});
 });
 
 describe("get_checksum_url", () => {

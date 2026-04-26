@@ -6,6 +6,7 @@ import * as tc from "@actions/tool-cache";
 import * as platform from "./utils/platform";
 import { repository_url } from "./config";
 import { resolve_version, type ActionInputs } from "./github";
+import { PlatformName } from "./utils/platform";
 
 export { resolve_version, get_latest_release_tag } from "./github";
 
@@ -19,8 +20,17 @@ async function setup(): Promise<void> {
 	const checksum_path = await tc.downloadTool(checksum_url);
 	const archive_filename = get_asset_filename(download_url);
 	verify_archive_checksum(archive_path, archive_filename, checksum_path);
-	const path_to_cli = platform_name === "windows" ? await tc.extractZip(archive_path) : await tc.extractTar(archive_path);
-	core.addPath(path_to_cli);
+	let is_windows = platform_name === "windows";
+
+	let cli_path: string;
+	if (!is_windows) {
+		const extracted_path = await tc.extractTar(archive_path);
+		const name = path.parse(archive_filename).name;
+		cli_path = path.join(extracted_path, name);
+	} else {
+		cli_path = await tc.extractZip(archive_path);
+	}
+	core.addPath(cli_path);
 }
 
 function get_action_inputs(): ActionInputs {
@@ -30,7 +40,7 @@ function get_action_inputs(): ActionInputs {
 	};
 }
 
-export function get_download_url(version: string, repository_url: string, platform_name: string): string {
+export function get_download_url(version: string, repository_url: string, platform_name: PlatformName): string {
 	const release_version = version;
 
 	if (platform_name === "windows") {

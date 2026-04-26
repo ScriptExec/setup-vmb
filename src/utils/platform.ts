@@ -2,9 +2,9 @@ declare const process: {
 	platform: string;
 };
 
-export type platform_name = "windows" | "linux" | "macos" | "unknown";
+export type PlatformName = "windows" | "linux" | "macos" | "unknown";
 
-export function get_platform_name(): platform_name {
+export function get_platform_name(): PlatformName {
 	if (process.platform === "win32") {
 		return "windows";
 	}
