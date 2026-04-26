@@ -25,8 +25,15 @@ async function setup(): Promise<void> {
 	let cli_path: string;
 	if (!is_windows) {
 		const extracted_path = await tc.extractTar(archive_path);
-		const name = path.parse(archive_filename).name;
-		cli_path = path.join(extracted_path, name);
+		const entries = fs.readdirSync(extracted_path);
+		if (entries.length === 0) {
+			throw new Error("Extracted archive is empty");
+		}
+    	const dir = entries[0];
+		if (!dir) {
+			throw new Error("Failed to determine extracted directory");
+		}
+		cli_path = path.join(extracted_path, dir);
 	} else {
 		cli_path = await tc.extractZip(archive_path);
 	}
