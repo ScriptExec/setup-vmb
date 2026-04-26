@@ -8,6 +8,8 @@ GitHub Action for setting up [vmb](https://github.com/ScriptExec/vmb) with a spe
 - uses: ScriptExec/setup-vmb@v1
   with:
     version: latest
+    # optional, but recommended
+    github-token: ${{ github.token }}
 ```
 
 ### Inputs
@@ -30,12 +32,13 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up vmb
         uses: ScriptExec/setup-vmb@v1
         with:
           version: latest
+          # The token is optional
           github-token: ${{ github.token }}
 
       - name: Verify vmb
