@@ -15,6 +15,15 @@ async function setup(): Promise<void> {
 	const action_inputs = get_action_inputs();
 	const platform_name = platform.get_platform_name();
 	const resolved_version = await resolve_version(action_inputs, repository_url);
+	const cached_path = tc.find("vmb", resolved_version, process.arch);
+	if (cached_path) {
+		core.info(`Cache hit for vmb ${resolved_version}: ${cached_path}`);
+		core.addPath(cached_path);
+		core.info(`Added ${cached_path} to PATH`);
+		return;
+	}
+
+	core.info(`Cache miss for vmb ${resolved_version}; downloading release assets`);
 	const download_url = get_download_url(resolved_version, repository_url, platform_name);
 	const checksum_url = get_checksum_url(resolved_version, repository_url);
 	core.info(`Resolving vmb ${resolved_version} for ${platform_name}/${process.arch}`);
