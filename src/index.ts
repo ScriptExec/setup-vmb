@@ -2,7 +2,6 @@ import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as core from "@actions/core";
-import * as github from "@actions/github";
 import * as tc from "@actions/tool-cache";
 import * as platform from "./utils/platform";
 import { repository_url } from "./config";
@@ -44,9 +43,32 @@ async function resolve_version(action_inputs: ActionInputs, repository_url: stri
 		throw new Error(`Invalid repository URL: ${repository_url}`);
 	}
 
-	const octokit = github.getOctokit(action_inputs.github_token);
-	const latest_release = await octokit.rest.repos.getLatestRelease({ owner, repo });
-	return latest_release.data.tag_name;
+	return await get_latest_release_tag(owner, repo, action_inputs.github_token);
+}
+
+async function get_latest_release_tag(owner: string, repo: string, github_token: string): Promise<string> {
+	const headers: Record<string, string> = {
+		accept: "application/vnd.github+json",
+	};
+
+	if (github_token.length > 0) {
+		headers.authorization = `Bearer ${github_token}`;
+	}
+
+	const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`, {
+		headers,
+	});
+
+	if (!response.ok) {
+		throw new Error(`Failed to resolve latest release for ${owner}/${repo}: ${response.status} ${response.statusText}`);
+	}
+
+	const release = (await response.json()) as { tag_name?: string };
+	if (!release.tag_name) {
+		throw new Error(`Latest release for ${owner}/${repo} did not include a tag name`);
+	}
+
+	return release.tag_name;
 }
 
 function get_download_url(version: string, repository_url: string, platform_name: string): string {
